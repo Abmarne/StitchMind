@@ -13,7 +13,7 @@ litellm.logging = False
 
 # Regex patterns for deterministic linking
 # Matches keys like APP-123 or SEC-999
-JIRA_PATTERN = re.compile(r'\b([A-Z]{2,10})-\d+\b')
+JIRA_PATTERN = re.compile(r'\b([A-Z]{2,10}-\d+)\b')
 # Matches references to pull requests like PR #40 or pull request 22
 GITHUB_PR_PATTERN = re.compile(r'\b(?:pull request|pr|pull|#)\s*#?(\d+)\b', re.IGNORECASE)
 

@@ -1,6 +1,6 @@
 import datetime
 import json
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Text
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Text, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from app.config import DATABASE_URL
 from app.crypto import encrypt_value, decrypt_value
@@ -39,6 +39,7 @@ class Document(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     connector_id = Column(Integer, ForeignKey("connectors.id"), nullable=True)
+    platform = Column(String, index=True, default="unknown")
     external_id = Column(String, index=True)  # Platform specific ID
     title = Column(String)
     body = Column(Text)
@@ -67,6 +68,11 @@ class EntityLink(Base):
 def init_db():
     """Initializes tables on startup if they don't exist."""
     Base.metadata.create_all(bind=engine)
+    inspector = inspect(engine)
+    document_columns = {column["name"] for column in inspector.get_columns("documents")}
+    if "platform" not in document_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE documents ADD COLUMN platform VARCHAR DEFAULT 'unknown'"))
 
 def get_db():
     """FastAPI database session dependency."""
