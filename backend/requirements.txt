@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+lancedb
+pyarrow
+litellm
+pydantic>=2.0
+sentence-transformers
+requests
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+cryptography
+python-multipart

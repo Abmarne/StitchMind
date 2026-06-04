@@ -1,0 +1,107 @@
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  height: calc(100vh - 130px);
+  display: flex;
+  flex-direction: column;
+}
+
+.canvasContainer {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: rgba(5, 7, 12, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.edge {
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 1.5px;
+  stroke-dasharray: 4 2;
+  animation: dash 20s linear infinite;
+  transition: stroke var(--transition-fast), stroke-width var(--transition-fast);
+}
+
+.edgeActive {
+  stroke: var(--accent-color);
+  stroke-width: 2.5px;
+  stroke-dasharray: none;
+  animation: none;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.node {
+  cursor: pointer;
+  transition: r var(--transition-fast), filter var(--transition-fast);
+}
+
+.node:hover {
+  filter: drop-shadow(0 0 8px var(--glow-color, var(--accent-color)));
+}
+
+.nodeLabel {
+  font-size: 0.65rem;
+  fill: var(--text-secondary);
+  pointer-events: none;
+  text-anchor: middle;
+  font-weight: 500;
+}
+
+.tooltip {
+  position: absolute;
+  background: rgba(11, 15, 25, 0.95);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  pointer-events: none;
+  font-size: 0.8rem;
+  box-shadow: var(--glass-shadow);
+  max-width: 260px;
+  z-index: 10;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  backdrop-filter: var(--glass-blur);
+  animation: fadeIn var(--transition-fast) forwards;
+}
+
+.tooltipTitle {
+  font-weight: 700;
+  color: var(--accent-color);
+  font-size: 0.85rem;
+}
+
+.tooltipDesc {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.graphMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.instructions {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
