@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from app.database import init_db, get_db, Connector, Document, EntityLink
 from app.pipeline import process_and_index_document, unify_context
+from app.vector_store import reset_vector_store
 import app.config as config
 from app.crypto import encrypt_value
 
@@ -73,6 +74,14 @@ class ConfigUpdate(BaseModel):
     gemini_api_key: Optional[str] = None
     ollama_host: Optional[str] = None
 
+class WebhookPayload(BaseModel):
+    title: Optional[str] = None
+    body: Optional[str] = None
+    external_id: Optional[str] = None
+    url: Optional[str] = None
+    author: Optional[str] = None
+    raw: Optional[Dict] = None
+
 # --- Core API Endpoints ---
 
 @app.get("/api/health")
@@ -129,6 +138,58 @@ def delete_connector(connector_id: int, db: Session = Depends(get_db)):
     db.delete(connector)
     db.commit()
     return {"status": "success", "message": f"Connector {connector_id} deleted"}
+
+@app.post("/api/connectors/{connector_id}/sync")
+def sync_connector(connector_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    connector = db.query(Connector).filter(Connector.id == connector_id).first()
+    if not connector:
+        raise HTTPException(status_code=404, detail="Connector not found")
+    connector.last_sync = datetime.datetime.utcnow()
+    db.commit()
+    return {
+        "status": "queued",
+        "message": (
+            f"{connector.platform} sync hook accepted. Real polling connectors can attach here; "
+            "the zero-cost demo uses seeded and webhook-ingested documents."
+        )
+    }
+
+@app.post("/api/webhooks/{platform}")
+def receive_webhook(platform: str, payload: WebhookPayload, db: Session = Depends(get_db)):
+    connector = db.query(Connector).filter(Connector.platform == platform).first()
+    if not connector:
+        connector = Connector(platform=platform, name=f"{platform.title()} Webhook Connector")
+        connector.set_auth_config({"mode": "webhook_demo"})
+        db.add(connector)
+        db.commit()
+        db.refresh(connector)
+
+    raw = payload.raw or {}
+    title = payload.title or raw.get("title") or raw.get("subject") or f"{platform.title()} webhook event"
+    body = payload.body or raw.get("body") or raw.get("text") or json.dumps(raw)
+    external_id = payload.external_id or raw.get("id") or f"webhook-{int(datetime.datetime.utcnow().timestamp())}"
+
+    doc = process_and_index_document(
+        db=db,
+        connector_id=connector.id,
+        external_id=str(external_id),
+        platform=platform,
+        title=title,
+        body=body,
+        url=payload.url or raw.get("url"),
+        author=payload.author or raw.get("author"),
+        created_at=datetime.datetime.utcnow()
+    )
+    return {"status": "indexed", "document_id": doc.id}
+
+@app.delete("/api/privacy/local-data")
+def delete_local_data(db: Session = Depends(get_db)):
+    db.query(EntityLink).delete()
+    db.query(Document).delete()
+    db.query(Connector).delete()
+    db.commit()
+    reset_vector_store()
+    return {"status": "success", "message": "Deleted local documents, links, connectors, and vector chunks."}
 
 # --- Document Management ---
 
@@ -198,90 +259,174 @@ def get_entity_links(db: Session = Depends(get_db)):
 
 @app.post("/api/seed-mock-data")
 def seed_mock_data(db: Session = Depends(get_db)):
-    """Seeds relational SQLite and LanceDB with realistic cross-platform items to demonstrate mapping."""
+    """Seeds relational SQLite and LanceDB with realistic cross-platform workflows."""
     try:
-        # Create a mock connector first
         connector = db.query(Connector).filter(Connector.platform == "mock").first()
         if not connector:
-            connector = Connector(platform="mock", name="Demo Playground Connector")
+            connector = Connector(platform="mock", name="Demo Workflow Sandbox")
             connector.set_auth_config({"demo": "enabled"})
             db.add(connector)
             db.commit()
             db.refresh(connector)
 
-        # 1. Jira Ticket Doc
-        jira_doc = process_and_index_document(
-            db=db,
-            connector_id=connector.id,
-            external_id="PROJ-101",
-            platform="jira",
-            title="PROJ-101: Fix OAuth Session Token Refresh Loop",
-            body=(
-                "Severity: High. Users logging in via mobile devices experience a cyclic loop "
-                "where refresh tokens expire immediately after issuance. Expected behavior: "
-                "JWT session refresh should persist token validity for 7 days. "
-                "Needs revision on JWT payload validation timestamps."
-            ),
-            url="https://jira.company.com/browse/PROJ-101",
-            author="Alice ProductManager",
-            created_at=datetime.datetime.utcnow() - datetime.timedelta(days=2)
-        )
+        now = datetime.datetime.utcnow()
+        demo_docs = [
+            {
+                "external_id": "PROJ-101",
+                "platform": "jira",
+                "title": "PROJ-101: Fix OAuth Session Token Refresh Loop",
+                "body": (
+                    "Severity: High. Users logging in via mobile devices experience a cyclic loop where refresh "
+                    "tokens expire immediately after issuance. Expected behavior: JWT session refresh should "
+                    "persist token validity for 7 days. Needs revision on JWT payload validation timestamps."
+                ),
+                "url": "https://jira.company.com/browse/PROJ-101",
+                "author": "Alice ProductManager",
+                "created_at": now - datetime.timedelta(days=2)
+            },
+            {
+                "external_id": "slack_msg_10923",
+                "platform": "slack",
+                "title": "Slack Thread in #engineering-auth",
+                "body": (
+                    "Bob: I am looking into PROJ-101. UTC vs local clock skew is causing the JWT to look expired "
+                    "immediately. I am pushing branch oauth-skew-fix and creating PR #202."
+                ),
+                "url": "https://slack.company.com/archives/C12345/p10923",
+                "author": "Bob Developer",
+                "created_at": now - datetime.timedelta(days=1)
+            },
+            {
+                "external_id": "202",
+                "platform": "github",
+                "title": "PR #202: Fix token expiration clock skew error (PROJ-101)",
+                "body": (
+                    "This PR resolves PROJ-101 from branch oauth-skew-fix. Added a clock skew leeway of 60 seconds "
+                    "inside jwt_verifier.py. Resolves regression bugs identified in auth backend."
+                ),
+                "url": "https://github.com/company/stitchmind/pull/202",
+                "author": "Bob Developer",
+                "created_at": now - datetime.timedelta(hours=12)
+            },
+            {
+                "external_id": "gdoc_spec_987",
+                "platform": "google_workspace",
+                "title": "StitchMind Token Validation Architecture",
+                "body": (
+                    "System Architecture for Auth Session Management. PROJ-101 must account for clock skew between "
+                    "API gateway and client auth server inside jwt_verifier.py to prevent refresh loops."
+                ),
+                "url": "https://docs.google.com/document/d/987_oauth_spec",
+                "author": "System Architect",
+                "created_at": now - datetime.timedelta(days=5)
+            },
+            {
+                "external_id": "PLAN-42",
+                "platform": "jira",
+                "title": "PLAN-42: Q3 Launch Readiness Epic",
+                "body": (
+                    "Epic for Q3 launch readiness. Scope includes billing migration, onboarding copy, analytics QA, "
+                    "and launch checklist ownership. Status is at risk until analytics owner is assigned."
+                ),
+                "url": "https://jira.company.com/browse/PLAN-42",
+                "author": "Mira ProgramLead",
+                "created_at": now - datetime.timedelta(days=8)
+            },
+            {
+                "external_id": "gdoc_plan_q3",
+                "platform": "google_workspace",
+                "title": "Q3 Launch Plan And Dependencies",
+                "body": (
+                    "PLAN-42 depends on final pricing copy, QA sign-off, and milestone tracking. The planning doc "
+                    "recommends a launch freeze by Friday and review of GitHub milestone PR #88."
+                ),
+                "url": "https://docs.google.com/document/d/q3_launch_plan",
+                "author": "Mira ProgramLead",
+                "created_at": now - datetime.timedelta(days=6)
+            },
+            {
+                "external_id": "gmail_plan_thread",
+                "platform": "gmail",
+                "title": "Email: Launch owners and analytics gap",
+                "body": (
+                    "Subject: PLAN-42 launch owners. The analytics dashboard still lacks an owner. Please review "
+                    "the Q3 Launch Plan and PR #88 before the readiness meeting."
+                ),
+                "url": "https://mail.google.com/mail/u/0/#inbox/plan42",
+                "author": "ops@example.com",
+                "created_at": now - datetime.timedelta(days=3)
+            },
+            {
+                "external_id": "88",
+                "platform": "github",
+                "title": "PR #88: Add launch analytics milestone dashboard",
+                "body": (
+                    "Implements launch analytics dashboard for PLAN-42. Remaining TODO: assign dashboard owner and "
+                    "confirm event naming before Q3 launch freeze."
+                ),
+                "url": "https://github.com/company/stitchmind/pull/88",
+                "author": "Nikhil Engineer",
+                "created_at": now - datetime.timedelta(days=2)
+            },
+            {
+                "external_id": "TRIP-2026",
+                "platform": "google_workspace",
+                "title": "TRIP-2026: Tokyo Itinerary",
+                "body": (
+                    "Personal trip plan for Tokyo. Arrive June 18, hotel check-in after 3 PM, museum booking on "
+                    "June 20, and airport transfer still needs confirmation."
+                ),
+                "url": "https://docs.google.com/document/d/tokyo_trip_2026",
+                "author": "Abhiraj",
+                "created_at": now - datetime.timedelta(days=10)
+            },
+            {
+                "external_id": "gmail_flight_tokyo",
+                "platform": "gmail",
+                "title": "Flight confirmation for Tokyo",
+                "body": (
+                    "Booking confirmation for TRIP-2026. Flight AI-306 departs June 18 at 01:15 and arrives Tokyo "
+                    "at 13:40. Check passport validity and baggage allowance."
+                ),
+                "url": "https://mail.google.com/mail/u/0/#inbox/trip-flight",
+                "author": "airline@example.com",
+                "created_at": now - datetime.timedelta(days=9)
+            },
+            {
+                "external_id": "gmail_hotel_tokyo",
+                "platform": "gmail",
+                "title": "Hotel check-in instructions",
+                "body": (
+                    "Hotel confirmation for TRIP-2026. Check-in starts at 3 PM, address is near Shinjuku Station, "
+                    "and the airport transfer is not included."
+                ),
+                "url": "https://mail.google.com/mail/u/0/#inbox/trip-hotel",
+                "author": "hotel@example.com",
+                "created_at": now - datetime.timedelta(days=7)
+            },
+            {
+                "external_id": "slack_trip_notes",
+                "platform": "slack",
+                "title": "Chat notes: Tokyo museum and transfer",
+                "body": (
+                    "Reminder for TRIP-2026: book museum tickets for June 20 and confirm whether airport transfer "
+                    "is needed after hotel check-in instructions."
+                ),
+                "url": "https://slack.example.com/archives/personal/trip",
+                "author": "Travel Buddy",
+                "created_at": now - datetime.timedelta(days=4)
+            }
+        ]
 
-        # 2. Slack Message Doc (referencing Jira Ticket)
-        slack_doc = process_and_index_document(
-            db=db,
-            connector_id=connector.id,
-            external_id="slack_msg_10923",
-            platform="slack",
-            title="Slack Thread in #engineering-auth",
-            body=(
-                "Bob: Hey guys, I am looking into PROJ-101. It looks like the server's time validation "
-                "discrepancy (UTC vs local clock skew) is causing the JWT to look expired immediately. "
-                "I am pushing a fix to branch oauth-skew-fix and creating a PR."
-            ),
-            url="https://slack.company.com/archives/C12345/p10923",
-            author="Bob Developer",
-            created_at=datetime.datetime.utcnow() - datetime.timedelta(days=1)
-        )
-
-        # 3. GitHub PR Doc (referencing Jira Ticket and Slack code terms)
-        github_doc = process_and_index_document(
-            db=db,
-            connector_id=connector.id,
-            external_id="202",
-            platform="github",
-            title="PR #202: Fix token expiration clock skew error (PROJ-101)",
-            body=(
-                "This PR resolves the JWT expiration token issues described in PROJ-101. "
-                "Added a clock skew leeway of 60 seconds inside jwt_verifier.py. "
-                "Co-authored by Alice PM. Resolves regression bugs identified in auth backend."
-            ),
-            url="https://github.com/company/stitchmind/pull/202",
-            author="Bob Developer",
-            created_at=datetime.datetime.utcnow() - datetime.timedelta(hours=12)
-        )
-
-        # 4. Google Doc (representing architecture blueprint)
-        gdoc_doc = process_and_index_document(
-            db=db,
-            connector_id=connector.id,
-            external_id="gdoc_spec_987",
-            platform="google_workspace",  # Treated as Google Docs
-            title="StitchMind Token Validation Architecture",
-            body=(
-                "System Architecture for Auth Session Management. We utilize JWTs with HS256 algorithm. "
-                "Token refresh occurs automatically on API requests when expiration is within 5 minutes. "
-                "Any clock skew between API gateway and client auth server must be accounted for "
-                "specifically in jwt_verifier.py to prevent loops."
-            ),
-            url="https://docs.google.com/document/d/987_oauth_spec",
-            author="System Architect",
-            created_at=datetime.datetime.utcnow() - datetime.timedelta(days=5)
-        )
+        for item in demo_docs:
+            process_and_index_document(db=db, connector_id=connector.id, **item)
 
         return {
             "status": "success", 
-            "message": "Seeded mock project data successfully. Linked Jira PROJ-101, Slack thread, GitHub PR #202, and Google Doc via regex and semantic layers."
+            "message": (
+                "Seeded developer bug, project planning, and personal trip workflows. "
+                "Documents are linked through work-item keys, PR references, URLs, branch mentions, and semantic similarity."
+            )
         }
     except Exception as e:
         db.rollback()

@@ -198,6 +198,13 @@
   line-height: 1.5;
 }
 
+.sandboxActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
 .googleInstructions {
   background: rgba(66, 133, 244, 0.05);
   border: 1px solid rgba(66, 133, 244, 0.15);

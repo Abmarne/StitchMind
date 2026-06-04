@@ -12,7 +12,11 @@ import {
   Sparkles,
   RefreshCw,
   User,
-  Calendar
+  Calendar,
+  ListChecks,
+  HelpCircle,
+  ShieldAlert,
+  Link2
 } from "lucide-react";
 import { Document, StitchResult, api } from "../../services/api";
 
@@ -151,8 +155,53 @@ export const Card: React.FC<CardProps> = ({ doc, useLocalLlm, localModel }) => {
             <h4 className={styles.stitchSummaryTitle}>
               <Cpu size={14} /> Stitched AI Summary
             </h4>
+            {stitchResult.intent && (
+              <span className={styles.intentBadge}>
+                {stitchResult.intent.replaceAll("_", " ")}
+              </span>
+            )}
             <p className={styles.stitchSummaryText}>{stitchResult.summary}</p>
           </div>
+
+          {stitchResult.timeline && stitchResult.timeline.length > 0 && (
+            <div className={styles.contextSection}>
+              <h5 className={styles.contextTitle}><ListChecks size={14} /> Timeline</h5>
+              <div className={styles.timelineList}>
+                {stitchResult.timeline.map((item, index) => (
+                  <div key={`${item.label}-${index}`} className={styles.timelineItem}>
+                    <span className={styles.timelineDate}>
+                      {item.timestamp ? formatDate(item.timestamp) : "Related"}
+                    </span>
+                    <div>
+                      <strong>{item.label}</strong>
+                      <p>{item.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {stitchResult.evidence && stitchResult.evidence.length > 0 && (
+            <div className={styles.contextSection}>
+              <h5 className={styles.contextTitle}><Link2 size={14} /> Linked Evidence</h5>
+              <div className={styles.evidenceGrid}>
+                {stitchResult.evidence.map((item, index) => (
+                  <a
+                    key={`${item.title}-${index}`}
+                    href={item.url || "#"}
+                    target={item.url ? "_blank" : undefined}
+                    rel={item.url ? "noopener noreferrer" : undefined}
+                    className={styles.evidenceItem}
+                  >
+                    <span>{item.platform.replaceAll("_", " ")}</span>
+                    <strong>{item.title}</strong>
+                    <p>{item.reason}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {stitchResult.anomalies && (
             <div className={styles.anomalyBox}>
@@ -161,6 +210,28 @@ export const Card: React.FC<CardProps> = ({ doc, useLocalLlm, localModel }) => {
                 <strong>Anomaly Detected: </strong>
                 {stitchResult.anomalies}
               </div>
+            </div>
+          )}
+
+          {stitchResult.open_questions && stitchResult.open_questions.length > 0 && (
+            <div className={styles.contextSection}>
+              <h5 className={styles.contextTitle}><HelpCircle size={14} /> Open Questions</h5>
+              <ul className={styles.compactList}>
+                {stitchResult.open_questions.map((question, index) => (
+                  <li key={`${question}-${index}`}>{question}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {stitchResult.risks && stitchResult.risks.length > 0 && (
+            <div className={styles.contextSection}>
+              <h5 className={styles.contextTitle}><ShieldAlert size={14} /> Risks</h5>
+              <ul className={styles.compactList}>
+                {stitchResult.risks.map((risk, index) => (
+                  <li key={`${risk}-${index}`}>{risk}</li>
+                ))}
+              </ul>
             </div>
           )}
 

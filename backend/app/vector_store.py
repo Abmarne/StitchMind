@@ -40,6 +40,13 @@ def add_chunks(chunks_list: list[dict]):
     table = get_chunks_table()
     table.add(chunks_list)
 
+def reset_vector_store():
+    """Drops and recreates the chunks table for local privacy resets."""
+    db = get_vector_db()
+    if "chunks" in db.table_names():
+        db.drop_table("chunks")
+    get_chunks_table()
+
 def delete_chunks_by_document(document_id: int):
     """Cleans up any existing vector chunks of a specific document (e.g., prior to re-indexing)."""
     table = get_chunks_table()

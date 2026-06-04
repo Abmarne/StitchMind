@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styles from "./ConnectionPanel.module.css";
-import { Settings, Cable, Plus, Trash2, HelpCircle, Sparkles, Check, RefreshCw } from "lucide-react";
+import { Settings, Cable, Plus, Trash2, HelpCircle, Sparkles, Check, RefreshCw, ShieldAlert } from "lucide-react";
 import { api, Connector, AppConfig } from "../../services/api";
 
 interface ConnectionPanelProps {
@@ -29,6 +29,8 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ onSeedSuccess 
   // Seeding sandbox state
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedCompleted, setSeedCompleted] = useState(false);
+  const [isDeletingLocalData, setIsDeletingLocalData] = useState(false);
+  const [deleteCompleted, setDeleteCompleted] = useState(false);
 
   useEffect(() => {
     fetchConfig();
@@ -123,6 +125,22 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ onSeedSuccess 
     }
   };
 
+  const handleDeleteLocalData = async () => {
+    if (!confirm("Delete all local StitchMind documents, links, connectors, and vector chunks?")) return;
+    setIsDeletingLocalData(true);
+    try {
+      await api.deleteLocalData();
+      setDeleteCompleted(true);
+      fetchConnectors();
+      onSeedSuccess();
+      setTimeout(() => setDeleteCompleted(false), 3000);
+    } catch (err: any) {
+      alert(err.message || "Failed to delete local data.");
+    } finally {
+      setIsDeletingLocalData(false);
+    }
+  };
+
   const handleAuthFieldChange = (key: string, value: string) => {
     setAuthFields(prev => ({ ...prev, [key]: value }));
   };
@@ -136,30 +154,51 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ onSeedSuccess 
             <Sparkles size={20} /> Seed Demo Sandbox
           </h3>
           <p className={styles.sandboxText}>
-            Want to test immediately? This will seed SQLite and LanceDB with mock, cross-referenced data 
-            (GitHub PRs, Jira tasks, Slack messages, and Google specs) relating to a real JWT Auth Clock-Skew bug. 
+            Want to test immediately? This seeds SQLite and LanceDB with three cross-platform workflows:
+            a developer bug, a project launch plan, and a personal trip itinerary.
             No credentials needed.
           </p>
         </div>
-        <button 
-          className={styles.button} 
-          onClick={handleSeedSandbox}
-          disabled={isSeeding}
-        >
-          {isSeeding ? (
-            <>
-              <RefreshCw size={16} className="spin" /> Seeding...
-            </>
-          ) : seedCompleted ? (
-            <>
-              <Check size={16} /> Sandbox Seeded!
-            </>
-          ) : (
-            <>
-              <Sparkles size={16} /> Seed Sandbox Data
-            </>
-          )}
-        </button>
+        <div className={styles.sandboxActions}>
+          <button 
+            className={styles.button} 
+            onClick={handleSeedSandbox}
+            disabled={isSeeding}
+          >
+            {isSeeding ? (
+              <>
+                <RefreshCw size={16} className="spin" /> Seeding...
+              </>
+            ) : seedCompleted ? (
+              <>
+                <Check size={16} /> Sandbox Seeded!
+              </>
+            ) : (
+              <>
+                <Sparkles size={16} /> Seed Sandbox Data
+              </>
+            )}
+          </button>
+          <button
+            className={`${styles.button} ${styles.buttonSecondary}`}
+            onClick={handleDeleteLocalData}
+            disabled={isDeletingLocalData}
+          >
+            {isDeletingLocalData ? (
+              <>
+                <RefreshCw size={16} className="spin" /> Clearing...
+              </>
+            ) : deleteCompleted ? (
+              <>
+                <Check size={16} /> Local Data Cleared
+              </>
+            ) : (
+              <>
+                <ShieldAlert size={16} /> Delete Local Data
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Settings Panel */}

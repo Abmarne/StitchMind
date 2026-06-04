@@ -192,6 +192,122 @@
   line-height: 1.6;
 }
 
+.intentBadge {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.contextSection {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.contextTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.timelineItem {
+  display: grid;
+  grid-template-columns: minmax(82px, 120px) 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.timelineItem strong {
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
+.timelineItem p {
+  margin-top: 0.25rem;
+  line-height: 1.45;
+}
+
+.timelineDate {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.evidenceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.65rem;
+}
+
+.evidenceItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 116px;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.evidenceItem:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-focus);
+}
+
+.evidenceItem span {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.evidenceItem strong {
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.evidenceItem p {
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.compactList {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
 .anomalyBox {
   background: rgba(245, 158, 11, 0.05);
   border: 1px solid rgba(245, 158, 11, 0.25);

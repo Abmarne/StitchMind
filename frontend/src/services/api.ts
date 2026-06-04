@@ -45,8 +45,26 @@ export interface SuggestedAction {
   payload?: any;
 }
 
+export interface CardTimelineItem {
+  timestamp?: string;
+  label: string;
+  detail: string;
+}
+
+export interface CardEvidenceItem {
+  platform: string;
+  title: string;
+  reason: string;
+  url?: string;
+}
+
 export interface StitchResult {
+  intent?: string;
   summary: string;
+  timeline?: CardTimelineItem[];
+  evidence?: CardEvidenceItem[];
+  open_questions?: string[];
+  risks?: string[];
   anomalies?: string;
   suggested_actions: SuggestedAction[];
   error?: string;
@@ -135,6 +153,17 @@ export const api = {
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.detail || "Failed to seed demo database");
+    }
+    return res.json();
+  },
+
+  async deleteLocalData(): Promise<{ status: string; message: string }> {
+    const res = await fetch(`${API_BASE}/privacy/local-data`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Failed to delete local data");
     }
     return res.json();
   },
