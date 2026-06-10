@@ -3,16 +3,16 @@ import styles from "./Dashboard.module.css";
 import { 
   Search, 
   RotateCw, 
-  Sparkles, 
   Layers, 
-  Github, 
+  GitBranch, 
   MessageSquare, 
   Ticket, 
   FileText, 
   Mail,
   GitPullRequest
 } from "lucide-react";
-import { Document, api } from "../../services/api";
+import { api } from "../../services/api";
+import type { Document } from "../../services/api";
 import { Card } from "../Card/Card";
 
 interface DashboardProps {
@@ -103,7 +103,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ refreshTrigger }) => {
             className={`${styles.pill} ${activePlatform === "github" ? styles.activePill : ""}`}
             onClick={() => setActivePlatform("github")}
           >
-            <Github size={14} /> GitHub
+            <GitBranch size={14} /> GitHub
           </button>
           <button 
             className={`${styles.pill} ${activePlatform === "slack" ? styles.activePill : ""}`}

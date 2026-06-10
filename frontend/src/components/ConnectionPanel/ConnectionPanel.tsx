@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import styles from "./ConnectionPanel.module.css";
-import { Settings, Cable, Plus, Trash2, HelpCircle, Sparkles, Check, RefreshCw, ShieldAlert } from "lucide-react";
-import { api, Connector, AppConfig } from "../../services/api";
+import { Settings, Plus, RefreshCw, Trash2, Cable, Sparkles, Check, ShieldAlert } from "lucide-react";
+import { api } from "../../services/api";
+import type { Connector, AppConfig } from "../../services/api";
 
 interface ConnectionPanelProps {
   onSeedSuccess: () => void;

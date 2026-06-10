@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import styles from "./Graph.module.css";
 import { Network, RefreshCw } from "lucide-react";
-import { api, EntityLink } from "../../services/api";
+import { api } from "../../services/api";
+import type { EntityLink } from "../../services/api";
 
 interface Node {
   id: number;
@@ -22,7 +23,6 @@ interface Edge {
 }
 
 export const Graph: React.FC = () => {
-  const [links, setLinks] = useState<EntityLink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Physics states
@@ -42,7 +42,6 @@ export const Graph: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await api.getLinks();
-      setLinks(data);
       initializePhysics(data);
     } catch (err) {
       console.error("Failed to load graph links", err);

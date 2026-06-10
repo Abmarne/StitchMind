@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styles from "./Card.module.css";
 import { 
-  Github, 
+  GitBranch, 
   MessageSquare, 
   Ticket, 
   FileText, 
@@ -19,7 +19,8 @@ import {
   Link2,
   Download
 } from "lucide-react";
-import { Document, StitchResult, api } from "../../services/api";
+import type { Document, StitchResult } from "../../services/api";
+import { api } from "../../services/api";
 
 interface CardProps {
   doc: Document;
@@ -55,7 +56,7 @@ export const Card: React.FC<CardProps> = ({ doc, useLocalLlm, localModel }) => {
       case "github":
         return (
           <span className={`${styles.badge} ${styles.badgeGithub}`}>
-            <Github size={12} /> GitHub
+            <GitBranch size={12} /> GitHub
           </span>
         );
       case "slack":
