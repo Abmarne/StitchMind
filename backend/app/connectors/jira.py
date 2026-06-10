@@ -45,7 +45,8 @@ def sync_jira(db: Session, connector: Connector):
     }
     params = {
         "jql": jql,
-        "maxResults": 20
+        "maxResults": 20,
+        "fields": "summary,description,status,assignee,created,comment"
     }
 
     try:
@@ -74,12 +75,23 @@ def sync_jira(db: Session, connector: Connector):
                 assignee_info = fields.get("assignee")
                 assignee_name = assignee_info.get("displayName") if assignee_info else "Unassigned"
                 
+                # Parse comments
+                comments_data = fields.get("comment", {}).get("comments", [])
+                comments_text = ""
+                for c in comments_data:
+                    c_author = c.get("author", {}).get("displayName", "Unknown")
+                    c_body_raw = c.get("body")
+                    c_body_text = parse_adf_description(c_body_raw)
+                    if c_body_text.strip():
+                        comments_text += f"\n\n--- Comment by {c_author} ---\n{c_body_text}"
+                
                 body = (
                     f"Ticket Key: {key}\n"
                     f"Status: {status}\n"
                     f"Assignee: {assignee_name}\n"
                     f"Summary: {summary}\n"
                     f"Description: {description_text}"
+                    f"{comments_text}"
                 )
                 
                 ticket_url = f"https://{domain}/browse/{key}"
