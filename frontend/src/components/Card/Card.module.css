@@ -183,7 +183,28 @@
   letter-spacing: 0.05em;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: space-between;
+}
+
+.exportButton {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: var(--accent-color);
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all var(--transition-fast);
+}
+
+.exportButton:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-1px);
 }
 
 .stitchSummaryText {

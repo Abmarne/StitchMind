@@ -16,7 +16,8 @@ import {
   ListChecks,
   HelpCircle,
   ShieldAlert,
-  Link2
+  Link2,
+  Download
 } from "lucide-react";
 import { Document, StitchResult, api } from "../../services/api";
 
@@ -100,6 +101,70 @@ export const Card: React.FC<CardProps> = ({ doc, useLocalLlm, localModel }) => {
     }
   };
 
+  const exportToMarkdown = () => {
+    if (!stitchResult) return;
+
+    let md = `# Context Card: ${doc.title}\n\n`;
+    
+    if (stitchResult.intent) {
+      md += `**Intent**: ${stitchResult.intent.replaceAll("_", " ")}\n\n`;
+    }
+    
+    md += `## Summary\n${stitchResult.summary}\n\n`;
+    
+    if (stitchResult.timeline && stitchResult.timeline.length > 0) {
+      md += `## Timeline\n`;
+      stitchResult.timeline.forEach(item => {
+        md += `- **${item.label}** (${item.timestamp ? formatDate(item.timestamp) : "Related"}): ${item.detail}\n`;
+      });
+      md += `\n`;
+    }
+
+    if (stitchResult.evidence && stitchResult.evidence.length > 0) {
+      md += `## Linked Evidence\n`;
+      stitchResult.evidence.forEach(item => {
+        const linkStr = item.url ? `[${item.title}](${item.url})` : `**${item.title}**`;
+        md += `- ${linkStr} (${item.platform.replaceAll("_", " ")}): ${item.reason}\n`;
+      });
+      md += `\n`;
+    }
+    
+    if (stitchResult.anomalies) {
+      md += `## Anomalies\n${stitchResult.anomalies}\n\n`;
+    }
+
+    if (stitchResult.open_questions && stitchResult.open_questions.length > 0) {
+      md += `## Open Questions\n`;
+      stitchResult.open_questions.forEach(q => md += `- ${q}\n`);
+      md += `\n`;
+    }
+
+    if (stitchResult.risks && stitchResult.risks.length > 0) {
+      md += `## Risks\n`;
+      stitchResult.risks.forEach(r => md += `- ${r}\n`);
+      md += `\n`;
+    }
+
+    if (stitchResult.suggested_actions && stitchResult.suggested_actions.length > 0) {
+      md += `## Suggested Actions\n`;
+      stitchResult.suggested_actions.forEach(a => {
+        const actionStr = a.url ? `[${a.label}](${a.url})` : a.label;
+        md += `- ${actionStr}\n`;
+      });
+      md += `\n`;
+    }
+
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Context_Card_${doc.platform}_${doc.external_id}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className={`${styles.card} fade-in`}>
       <div className={styles.header}>
@@ -152,9 +217,18 @@ export const Card: React.FC<CardProps> = ({ doc, useLocalLlm, localModel }) => {
       {hasStitched && stitchResult && (
         <div className={styles.stitchPanel}>
           <div className={styles.stitchSummary}>
-            <h4 className={styles.stitchSummaryTitle}>
-              <Cpu size={14} /> Stitched AI Summary
-            </h4>
+            <div className={styles.stitchSummaryTitle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Cpu size={14} /> Stitched AI Summary
+              </div>
+              <button 
+                className={styles.exportButton} 
+                onClick={exportToMarkdown}
+                title="Export as Markdown"
+              >
+                <Download size={14} /> Export MD
+              </button>
+            </div>
             {stitchResult.intent && (
               <span className={styles.intentBadge}>
                 {stitchResult.intent.replaceAll("_", " ")}

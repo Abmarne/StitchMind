@@ -127,7 +127,7 @@ Open:
 - Jira Cloud issue and comment sync.
 - Gmail and Google Docs read-only OAuth desktop flow.
 - Webhook ingestion for incremental events.
-- Markdown export for generated Context Cards.
+- [x] Markdown export for generated Context Cards.
 - Proactive daily briefs for stale tickets, unresolved PRs, unanswered questions, and status mismatches.
 - Optional voice query and spoken card summaries.
 
