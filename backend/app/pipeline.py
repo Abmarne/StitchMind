@@ -497,3 +497,83 @@ def unify_context(db: Session, doc_id: int, use_local_llm: bool = False, local_m
     except Exception as e:
         print(f"Error in LLM context unification completion: {e}")
         return build_fallback_context_card(doc, linked_docs, semantic_chunks, llm_error=str(e))
+
+def generate_daily_brief(db: Session, days: int = 7, use_local_llm: bool = False, local_model: str = "llama3") -> dict:
+    """Generates a proactive daily brief based on recent documents."""
+    cutoff_date = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+    recent_docs = db.query(Document).filter(Document.created_at >= cutoff_date).order_by(Document.created_at.desc()).limit(50).all()
+    
+    if not recent_docs:
+        return {
+            "summary": "No documents found in the specified timeframe.",
+            "stale_tickets": [],
+            "unresolved_prs": [],
+            "unanswered_questions": [],
+            "status_mismatches": []
+        }
+        
+    prompt = f"Analyze the following {len(recent_docs)} recent documents from the past {days} days:\n\n"
+    for doc in recent_docs:
+        prompt += f"--- Document ID: {doc.external_id} ---\n"
+        prompt += f"Platform: {doc.platform.upper()}\n"
+        prompt += f"Title: {doc.title}\n"
+        prompt += f"URL: {doc.url}\n"
+        prompt += f"Content: {doc.body[:500] if doc.body else ''}\n\n"
+        
+    system_prompt = (
+        "You are StitchMind's Proactive Analyst. Review the provided recent documents and create a daily brief.\n"
+        "Identify items that seem stale (e.g., tickets not updated, old PRs), unresolved pull requests, "
+        "unanswered questions in chats/docs, and cross-platform status mismatches (e.g., Jira is 'In Progress' but PR is 'Merged').\n"
+        "You MUST output raw JSON matching this schema:\n"
+        "{\n"
+        "  \"summary\": \"A short executive summary of the overall status.\",\n"
+        "  \"stale_tickets\": [{\"title\": \"ticket title\", \"platform\": \"platform\", \"url\": \"link\", \"reason\": \"why it's stale\"}],\n"
+        "  \"unresolved_prs\": [{\"title\": \"PR title\", \"platform\": \"platform\", \"url\": \"link\", \"reason\": \"status/blocker\"}],\n"
+        "  \"unanswered_questions\": [{\"title\": \"Context\", \"platform\": \"platform\", \"url\": \"link\", \"reason\": \"The question\"}],\n"
+        "  \"status_mismatches\": [{\"title\": \"Mismatch title\", \"platform\": \"platform\", \"url\": \"link\", \"reason\": \"Explanation of mismatch\"}]\n"
+        "}"
+    )
+    
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": prompt}
+    ]
+
+    try:
+        if use_local_llm:
+            response = litellm.completion(
+                model=f"ollama/{local_model}",
+                messages=messages,
+                api_base=OLLAMA_HOST,
+                response_format={"type": "json_object"}
+            )
+        else:
+            if not GEMINI_API_KEY:
+                print("Gemini API key missing, falling back to Ollama")
+                response = litellm.completion(
+                    model=f"ollama/{local_model}",
+                    messages=messages,
+                    api_base=OLLAMA_HOST,
+                    response_format={"type": "json_object"}
+                )
+            else:
+                response = litellm.completion(
+                    model="gemini/gemini-1.5-flash",
+                    messages=messages,
+                    api_key=GEMINI_API_KEY,
+                    response_format={"type": "json_object"}
+                )
+                
+        content = response.choices[0].message.content
+        parsed = json.loads(content)
+        return parsed
+    except Exception as e:
+        print(f"Error generating daily brief: {e}")
+        return {
+            "summary": f"Error generating brief: {str(e)}",
+            "stale_tickets": [],
+            "unresolved_prs": [],
+            "unanswered_questions": [],
+            "status_mismatches": []
+        }
+

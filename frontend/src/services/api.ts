@@ -70,6 +70,21 @@ export interface StitchResult {
   error?: string;
 }
 
+export interface BriefItem {
+  title: string;
+  platform: string;
+  url: string;
+  reason: string;
+}
+
+export interface DailyBrief {
+  summary: string;
+  stale_tickets: BriefItem[];
+  unresolved_prs: BriefItem[];
+  unanswered_questions: BriefItem[];
+  status_mismatches: BriefItem[];
+}
+
 export interface AppConfig {
   gemini_api_key_configured: boolean;
   ollama_host: string;
@@ -138,6 +153,19 @@ export const api = {
     if (useLocalLlm) params.append("use_local_llm", "true");
     params.append("local_model", localModel);
     const res = await fetch(`${API_BASE}/documents/${docId}/stitch?${params.toString()}`);
+    return res.json();
+  },
+
+  async getDailyBrief(days: number = 7, useLocalLlm: boolean = false, localModel: string = "llama3"): Promise<DailyBrief> {
+    const params = new URLSearchParams();
+    params.append("days", days.toString());
+    if (useLocalLlm) params.append("use_local_llm", "true");
+    params.append("local_model", localModel);
+    
+    const res = await fetch(`${API_BASE}/briefs/daily?${params.toString()}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch daily brief: ${res.statusText}`);
+    }
     return res.json();
   },
 

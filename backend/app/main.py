@@ -217,6 +217,16 @@ def get_document(doc_id: int, db: Session = Depends(get_db)):
 
 # --- Context Stitching & LLM ---
 
+@app.get("/api/briefs/daily")
+def get_daily_brief(
+    days: int = Query(7, ge=1, le=30),
+    use_local_llm: bool = False,
+    local_model: str = "llama3",
+    db: Session = Depends(get_db)
+):
+    from app.pipeline import generate_daily_brief
+    return generate_daily_brief(db, days=days, use_local_llm=use_local_llm, local_model=local_model)
+
 @app.get("/api/documents/{doc_id}/stitch")
 def stitch_document_context(
     doc_id: int, 
