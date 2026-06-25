@@ -9,11 +9,7 @@ import {
   Ticket, 
   FileText, 
   Mail,
-  GitPullRequest,
-  Clock,
-  AlertCircle,
-  HelpCircle,
-  Activity
+  GitPullRequest
 } from "lucide-react";
 import { api } from "../../services/api";
 import type { Document } from "../../services/api";
