@@ -13,11 +13,10 @@ import {
   Clock,
   AlertCircle,
   HelpCircle,
-  Activity,
-  Zap
+  Activity
 } from "lucide-react";
 import { api } from "../../services/api";
-import type { Document, DailyBrief } from "../../services/api";
+import type { Document } from "../../services/api";
 import { Card } from "../Card/Card";
 
 interface DashboardProps {
@@ -34,10 +33,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ refreshTrigger }) => {
   const [useLocalLlm, setUseLocalLlm] = useState(false);
   const [localModel, setLocalModel] = useState("llama3");
 
-  // Daily Brief state
-  const [briefDays, setBriefDays] = useState<number>(7);
-  const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
-  const [dailyBrief, setDailyBrief] = useState<DailyBrief | null>(null);
+
 
   const loadDocuments = async () => {
     setIsLoading(true);
@@ -60,17 +56,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ refreshTrigger }) => {
     loadDocuments();
   };
 
-  const handleGenerateBrief = async () => {
-    setIsGeneratingBrief(true);
-    try {
-      const result = await api.getDailyBrief(briefDays, useLocalLlm, localModel);
-      setDailyBrief(result);
-    } catch (err) {
-      console.error("Failed to generate brief", err);
-    } finally {
-      setIsGeneratingBrief(false);
-    }
-  };
 
   return (
     <div className={styles.container}>
@@ -112,109 +97,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ refreshTrigger }) => {
         </div>
       </div>
 
-      {/* Daily Brief Panel */}
-      <div className={styles.briefContainer}>
-        <div className={styles.briefHeader}>
-          <h3 className={styles.briefTitle}>
-            <Zap size={20} style={{ color: "var(--accent-color)" }} />
-            Proactive Daily Brief
-          </h3>
-          <div className={styles.briefControls}>
-            <select 
-              className={styles.briefSelect}
-              value={briefDays}
-              onChange={(e) => setBriefDays(Number(e.target.value))}
-            >
-              <option value={1}>Last 24 Hours</option>
-              <option value={7}>Last 7 Days</option>
-              <option value={30}>Last 30 Days</option>
-            </select>
-            <button 
-              className={styles.refreshBtn} 
-              style={{ width: 'auto', padding: '0 1rem' }}
-              onClick={handleGenerateBrief}
-              disabled={isGeneratingBrief}
-            >
-              {isGeneratingBrief ? (
-                <><RotateCw size={14} className="spin" style={{ marginRight: '0.4rem' }}/> Generating...</>
-              ) : (
-                "Generate Brief"
-              )}
-            </button>
-          </div>
-        </div>
 
-        {dailyBrief && (
-          <div className="fade-in">
-            <p className={styles.briefSummary}>{dailyBrief.summary}</p>
-            <div className={styles.briefGrid}>
-              <div className={styles.briefSection}>
-                <h4 className={styles.briefSectionTitle}>
-                  <Clock size={16} /> Stale Tickets
-                </h4>
-                <div className={styles.briefList}>
-                  {dailyBrief.stale_tickets.length === 0 ? <span className={styles.briefItemReason}>None found</span> : null}
-                  {dailyBrief.stale_tickets.map((item, idx) => (
-                    <div key={idx} className={styles.briefItem}>
-                      <span className={styles.briefBadge}>{item.platform.replaceAll("_", " ")}</span>
-                      <a href={item.url || "#"} target="_blank" rel="noopener noreferrer" className={styles.briefItemTitle}>{item.title}</a>
-                      <span className={styles.briefItemReason}>{item.reason}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className={styles.briefSection}>
-                <h4 className={styles.briefSectionTitle}>
-                  <AlertCircle size={16} /> Unresolved PRs
-                </h4>
-                <div className={styles.briefList}>
-                  {dailyBrief.unresolved_prs.length === 0 ? <span className={styles.briefItemReason}>None found</span> : null}
-                  {dailyBrief.unresolved_prs.map((item, idx) => (
-                    <div key={idx} className={styles.briefItem}>
-                      <span className={styles.briefBadge}>{item.platform.replaceAll("_", " ")}</span>
-                      <a href={item.url || "#"} target="_blank" rel="noopener noreferrer" className={styles.briefItemTitle}>{item.title}</a>
-                      <span className={styles.briefItemReason}>{item.reason}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className={styles.briefSection}>
-                <h4 className={styles.briefSectionTitle}>
-                  <HelpCircle size={16} /> Unanswered Questions
-                </h4>
-                <div className={styles.briefList}>
-                  {dailyBrief.unanswered_questions.length === 0 ? <span className={styles.briefItemReason}>None found</span> : null}
-                  {dailyBrief.unanswered_questions.map((item, idx) => (
-                    <div key={idx} className={styles.briefItem}>
-                      <span className={styles.briefBadge}>{item.platform.replaceAll("_", " ")}</span>
-                      <a href={item.url || "#"} target="_blank" rel="noopener noreferrer" className={styles.briefItemTitle}>{item.title}</a>
-                      <span className={styles.briefItemReason}>{item.reason}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className={styles.briefSection}>
-                <h4 className={styles.briefSectionTitle}>
-                  <Activity size={16} /> Status Mismatches
-                </h4>
-                <div className={styles.briefList}>
-                  {dailyBrief.status_mismatches.length === 0 ? <span className={styles.briefItemReason}>None found</span> : null}
-                  {dailyBrief.status_mismatches.map((item, idx) => (
-                    <div key={idx} className={styles.briefItem}>
-                      <span className={styles.briefBadge}>{item.platform.replaceAll("_", " ")}</span>
-                      <a href={item.url || "#"} target="_blank" rel="noopener noreferrer" className={styles.briefItemTitle}>{item.title}</a>
-                      <span className={styles.briefItemReason}>{item.reason}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Filter Row */}
       <div className={styles.filterRow}>

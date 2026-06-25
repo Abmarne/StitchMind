@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styles from "./Layout.module.css";
-import { LayoutDashboard, Cable, Network, Sun, Moon, GitMerge } from "lucide-react";
+import { LayoutDashboard, Cable, Network, Sun, Moon, GitMerge, ClipboardList } from "lucide-react";
 import { api } from "../../services/api";
 
 interface LayoutProps {
@@ -68,6 +68,14 @@ export const Layout: React.FC<LayoutProps> = ({
               <span>Connectors</span>
             </button>
             <button
+              className={`${styles.navLink} ${activeTab === "briefs" ? styles.activeNavLink : ""}`}
+              onClick={() => setActiveTab("briefs")}
+              style={{ background: "none", border: "none", width: "100%", textAlign: "left" }}
+            >
+              <ClipboardList size={18} />
+              <span>Daily Briefs</span>
+            </button>
+            <button
               className={`${styles.navLink} ${activeTab === "graph" ? styles.activeNavLink : ""}`}
               onClick={() => setActiveTab("graph")}
               style={{ background: "none", border: "none", width: "100%", textAlign: "left" }}
@@ -97,6 +105,8 @@ export const Layout: React.FC<LayoutProps> = ({
               ? "Stitched Context" 
               : activeTab === "connectors" 
               ? "External Connections" 
+              : activeTab === "briefs"
+              ? "Daily Briefs"
               : "Knowledge Graph Network"}
           </h2>
           <div className={styles.headerActions}>

@@ -3,6 +3,7 @@ import Layout from "./components/Layout/Layout";
 import Dashboard from "./components/Dashboard/Dashboard";
 import ConnectionPanel from "./components/ConnectionPanel/ConnectionPanel";
 import Graph from "./components/Graph/Graph";
+import DailyBriefs from "./components/DailyBriefs/DailyBriefs";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -35,6 +36,9 @@ export default function App() {
       )}
       {activeTab === "connectors" && (
         <ConnectionPanel onSeedSuccess={handleSeedSuccess} />
+      )}
+      {activeTab === "briefs" && (
+        <DailyBriefs />
       )}
       {activeTab === "graph" && (
         <Graph />
